@@ -1,5 +1,5 @@
 {
-  description = "Molerat client implementation";
+  description = "Minimal URL shortener";
 
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
