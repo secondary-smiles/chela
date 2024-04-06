@@ -11,8 +11,22 @@ use info_utils::prelude::*;
 use crate::ServerState;
 use crate::UrlRow;
 
-pub async fn index() -> Html<&'static str> {
-    Html("hello, world!")
+pub async fn index(Extension(state): Extension<ServerState>) -> Html<String> {
+    Html(format!(
+        r#"
+    <!DOCTYPE html>
+    <html>
+        <head>
+            <title>{} URL Shortener</title>
+        </head>
+    </html>
+    <body>
+        <pre>{} URL shortener</pre>
+        <a href="/create">create</a>
+    </body>
+         "#,
+        state.host, state.host
+    ))
 }
 
 /// # Panics
@@ -128,12 +142,12 @@ pub async fn create_id(Extension(state): Extension<ServerState>) -> Html<String>
                         URL to shorten:
                         <input type="url" name="url" required>
                     </label>
-
+                    <br />
                     <label for="id">
                         ID (optional):
                         <input type="text" name="id">
                     </label>
-
+                    <br />
                     <input type="submit" value="create">
                 </form>
             </body>
