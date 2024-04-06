@@ -36,7 +36,7 @@ pub async fn get_id(
         if url::Url::parse(&it.url).is_ok() {
             if show_request {
                 return Html(format!(
-                    "<pre>{}/{} -> <a href={}>{}</a></pre>",
+                    "<pre>http://{}/{} -> <a href={}>{}</a></pre>",
                     state.host, it.id, it.url, it.url
                 ))
                 .into_response();

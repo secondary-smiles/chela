@@ -11,8 +11,6 @@ use info_utils::prelude::*;
 pub mod get;
 pub mod post;
 
-const LISTEN_ADDRESS: &'static str = "0.0.0.0:3000";
-
 #[derive(Clone)]
 pub struct ServerState {
     pub db_pool: Pool<Postgres>,
@@ -32,14 +30,15 @@ async fn main() -> eyre::Result<()> {
 
     let db_pool = init_db().await?;
 
-    let server_state = ServerState {
-        db_pool,
-        host: "trkt.in".to_string(),
-    };
+    let host = std::env::var("CHELA_HOST").unwrap_or("localhost".to_string());
+    let server_state = ServerState { db_pool, host };
+
+    let address = std::env::var("LISTEN_ADDRESS").unwrap_or("0.0.0.0".to_string());
+    let port = std::env::var("LISTEN_PORT").unwrap_or("3000".to_string());
 
     let router = init_routes(server_state)?;
-    let listener = tokio::net::TcpListener::bind(LISTEN_ADDRESS).await?;
-    log!("Listening at {}", LISTEN_ADDRESS);
+    let listener = tokio::net::TcpListener::bind(format!("{}:{}", address, port)).await?;
+    log!("Listening at {}:{}", address, port);
     axum::serve(
         listener,
         router.into_make_service_with_connect_info::<SocketAddr>(),
