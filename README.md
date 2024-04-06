@@ -25,15 +25,17 @@ services:
             - POSTGRES_PASSWORD=password
         volumes:
             - chela-db:/var/lib/postgresql/data
+        restart: unless-stopped
     chela:
         image: secondsmiles/chela
         ports:
             - 3000:3000
         environment:
-            - DATABASE_URL=postgres://chela:password@dbhost/postgres?sslmode=disable
+            - DATABASE_URL=postgres://chela:password@chela-postgres/postgres?sslmode=disable
             - CHELA_HOST=example.com
         depends_on:
-            - chela_postgres
+            - chela-postgres
+        restart: unless-stopped
 
 volumes:
     chela-db:
@@ -73,10 +75,6 @@ server {
     
     location / {
         proxy_pass http://localhost:3000/;
-    }
-
-    location /create {
-        proxy_pass http://localhost:3000/create;
 
         limit_except GET HEAD {
             auth_basic 'Restricted';
