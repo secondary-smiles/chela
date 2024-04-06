@@ -47,7 +47,10 @@ volumes:
 Used to define the database connection for Chela to use.
 
 ##### `CHELA_HOST`
-The hostname that Chela should refer to itself as. Defaults to `localhost`
+The hostname that Chela should refer to itself as. Defaults to `localhost`.
+
+##### `CHELA_LISTEN_ADDRESS`
+The address that Chela should listen on. Defaults to `0.0.0.0`. 
 
 ### Manually
 #### Build
@@ -61,6 +64,7 @@ $ cargo build -r
 ```bash
 $ export DATABASE_URL=postgres://chela:password@dbhost/postgres?sslmode=disable
 $ export CHELA_HOST=example.com
+$ export CHELA_LISTEN_ADDRESS=127.0.0.1
 $ ./target/release/chela
 ```
 
