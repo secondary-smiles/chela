@@ -57,8 +57,8 @@ async fn main() -> eyre::Result<()> {
         sqids,
     };
 
-    let address = std::env::var("LISTEN_ADDRESS").unwrap_or("0.0.0.0".to_string());
-    let port = std::env::var("LISTEN_PORT").unwrap_or("3000".to_string());
+    let address = "0.0.0.0";
+    let port = 3000;
 
     let router = init_routes(server_state);
     let listener = tokio::net::TcpListener::bind(format!("{address}:{port}")).await?;
