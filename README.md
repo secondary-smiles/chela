@@ -2,7 +2,7 @@
 Chela is a minimal URL shortener built in Rust. It is named after the small claw on crustaceans.
 
 ## Usage
-You can create a redirect by navigating to the `/create` page and filling out the form. By default, every path passed to Chela will treated as a redirect except `/` and `/create`.
+You can create a redirect by navigating to the `/create` page and filling out the form. By default, every path passed to Chela will be treated as a redirect except `/` and `/create`.
 
 ## Install and Run
 ### With Docker
