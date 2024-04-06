@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use axum::extract::{ConnectInfo, Path};
 use axum::http::HeaderMap;
 use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse, Redirect};
+use axum::response::{Html, IntoResponse};
 use axum::Extension;
 
 use info_utils::prelude::*;
@@ -11,11 +11,13 @@ use info_utils::prelude::*;
 use crate::ServerState;
 use crate::UrlRow;
 
-pub async fn get_index() -> Html<&'static str> {
+pub async fn index() -> Html<&'static str> {
     Html("hello, world!")
 }
 
-pub async fn get_id(
+/// # Panics
+/// Will panic if `parse()` fails
+pub async fn id(
     headers: HeaderMap,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Extension(state): Extension<ServerState>,
@@ -29,34 +31,48 @@ pub async fn get_id(
         use_id.pop();
     }
 
-    let item = sqlx::query_as!(UrlRow, "SELECT * FROM chela.urls WHERE id = $1", use_id)
-        .fetch_one(&state.db_pool)
-        .await;
+    let item: Result<UrlRow, sqlx::Error> =
+        sqlx::query_as("SELECT * FROM chela.urls WHERE id = $1")
+            .bind(use_id)
+            .fetch_one(&state.db_pool)
+            .await;
     if let Ok(it) = item {
         if url::Url::parse(&it.url).is_ok() {
             if show_request {
                 return Html(format!(
-                    "<pre>http://{}/{} -> <a href={}>{}</a></pre>",
+                    r#"<pre>http://{}/{} -> <a href="{}"">{}</a></pre>"#,
                     state.host, it.id, it.url, it.url
                 ))
                 .into_response();
-            } else {
-                log!("Redirecting {} -> {}", it.id, it.url);
-                save_analytics(headers, it.clone(), addr, state).await;
-                return Redirect::temporary(it.url.as_str()).into_response();
             }
+            log!("Redirecting {} -> {}", it.id, it.url);
+            save_analytics(headers, it.clone(), addr, state).await;
+            let mut response_headers = HeaderMap::new();
+            response_headers.insert("Cache-Control", "private, max-age=90".parse().unwrap());
+            response_headers.insert("Location", it.url.parse().unwrap());
+            return (
+                StatusCode::MOVED_PERMANENTLY,
+                response_headers,
+                Html(format!(
+                    r#"Redirecting to <a href="{}">{}</a>"#,
+                    it.url, it.url
+                )),
+            )
+                .into_response();
         }
+    } else if let Err(err) = item {
+        warn!("{}", err);
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Html(format!("<pre>Internal error: {err}.</pre>")),
+        )
+            .into_response();
     }
 
-    return (StatusCode::NOT_FOUND, Html("<pre>404</pre>")).into_response();
+    (StatusCode::NOT_FOUND, Html("<pre>Not found.</pre>")).into_response()
 }
 
-pub async fn save_analytics(
-    headers: HeaderMap,
-    item: UrlRow,
-    addr: SocketAddr,
-    state: ServerState,
-) {
+async fn save_analytics(headers: HeaderMap, item: UrlRow, addr: SocketAddr, state: ServerState) {
     let id = item.id;
     let ip = addr.ip().to_string();
     let referer = match headers.get("referer") {
@@ -80,20 +96,49 @@ pub async fn save_analytics(
         None => None,
     };
 
-    let res = sqlx::query!(
+    let res = sqlx::query(
         "
 INSERT INTO chela.tracking (id,ip,referrer,user_agent) 
 VALUES ($1,$2,$3,$4)
        ",
-        id,
-        ip,
-        referer,
-        user_agent
     )
+    .bind(id.clone())
+    .bind(ip.clone())
+    .bind(referer)
+    .bind(user_agent)
     .execute(&state.db_pool)
     .await;
 
     if res.is_ok() {
         log!("Saved analytics for '{id}' from {ip}");
     }
+}
+
+pub async fn create_id(Extension(state): Extension<ServerState>) -> Html<String> {
+    Html(format!(
+        r#"
+        <!DOCTYPE html>
+        <html>
+            <head>
+                <title>{} URL Shortener</title>
+            </head>
+            <body>
+                <form action="/" method="post">
+                    <label for="url">
+                        URL to shorten:
+                        <input type="url" name="url" required>
+                    </label>
+
+                    <label for="id">
+                        ID (optional):
+                        <input type="text" name="id">
+                    </label>
+
+                    <input type="submit" value="create">
+                </form>
+            </body>
+        </html>
+         "#,
+        state.host
+    ))
 }

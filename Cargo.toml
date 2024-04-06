@@ -1,5 +1,5 @@
 [package]
-name = "url_shortener"
+name = "chela"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,6 +11,7 @@ color-eyre = "0.6.3"
 eyre = "0.6.12"
 info_utils = "2.2.3"
 serde = "1.0.197"
+sqids = "0.4.1"
 sqlx = { version = "0.7.4", features = ["runtime-tokio", "postgres", "macros", "migrate", "tls-rustls"] }
 tokio = { version = "1.37.0", features = ["full"] }
-url = "2.5.0"
+url = { version = "2.5.0", features = ["serde"] }

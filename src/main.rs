@@ -6,6 +6,10 @@ use axum::Router;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::{Pool, Postgres};
 
+use sqids::Sqids;
+
+use serde::Deserialize;
+
 use info_utils::prelude::*;
 
 pub mod get;
@@ -15,13 +19,20 @@ pub mod post;
 pub struct ServerState {
     pub db_pool: Pool<Postgres>,
     pub host: String,
+    pub sqids: Sqids,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
 pub struct UrlRow {
-    pub index: i32,
+    pub index: i64,
     pub id: String,
     pub url: String,
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct CreateForm {
+    pub id: String,
+    pub url: url::Url,
 }
 
 #[tokio::main]
@@ -31,13 +42,26 @@ async fn main() -> eyre::Result<()> {
     let db_pool = init_db().await?;
 
     let host = std::env::var("CHELA_HOST").unwrap_or("localhost".to_string());
-    let server_state = ServerState { db_pool, host };
+
+    let sqids = Sqids::builder()
+        .alphabet(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                .chars()
+                .collect(),
+        )
+        .blocklist(["create".to_string()].into())
+        .build()?;
+    let server_state = ServerState {
+        db_pool,
+        host,
+        sqids,
+    };
 
     let address = std::env::var("LISTEN_ADDRESS").unwrap_or("0.0.0.0".to_string());
     let port = std::env::var("LISTEN_PORT").unwrap_or("3000".to_string());
 
-    let router = init_routes(server_state)?;
-    let listener = tokio::net::TcpListener::bind(format!("{}:{}", address, port)).await?;
+    let router = init_routes(server_state);
+    let listener = tokio::net::TcpListener::bind(format!("{address}:{port}")).await?;
     log!("Listening at {}:{}", address, port);
     axum::serve(
         listener,
@@ -54,15 +78,15 @@ async fn init_db() -> eyre::Result<Pool<Postgres>> {
         .await?;
     log!("Successfully connected to database");
 
-    sqlx::query!("CREATE SCHEMA IF NOT EXISTS chela")
+    sqlx::query("CREATE SCHEMA IF NOT EXISTS chela")
         .execute(&db_pool)
         .await?;
     log!("Created schema chela");
 
-    sqlx::query!(
+    sqlx::query(
         "
 CREATE TABLE IF NOT EXISTS chela.urls (
-    index SERIAL PRIMARY KEY,
+    index BIGSERIAL PRIMARY KEY,
     id TEXT NOT NULL UNIQUE,
     url TEXT NOT NULL
 )
@@ -72,7 +96,7 @@ CREATE TABLE IF NOT EXISTS chela.urls (
     .await?;
     log!("Created table chela.urls");
 
-    sqlx::query!(
+    sqlx::query(
         "
 CREATE TABLE IF NOT EXISTS chela.tracking (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -90,12 +114,11 @@ CREATE TABLE IF NOT EXISTS chela.tracking (
     Ok(db_pool)
 }
 
-fn init_routes(state: ServerState) -> eyre::Result<Router> {
-    let router = Router::new()
-        .route("/", get(get::get_index))
-        .route("/:id", get(get::get_id))
+fn init_routes(state: ServerState) -> Router {
+    Router::new()
+        .route("/", get(get::index))
+        .route("/:id", get(get::id))
+        .route("/create", get(get::create_id))
         .route("/", post(post::create_link))
-        .layer(axum::Extension(state));
-
-    Ok(router)
+        .layer(axum::Extension(state))
 }
