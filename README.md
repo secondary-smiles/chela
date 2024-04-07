@@ -1,3 +1,6 @@
+[![Build and Push Docker Image](https://github.com/secondary-smiles/chela/actions/workflows/docker-image.yml/badge.svg)](https://github.com/secondary-smiles/chela/actions/workflows/docker-image.yml)
+[![Docker Image Size](https://img.shields.io/docker/image-size/secondsmiles/chela)](https://hub.docker.com/r/secondsmiles/chela)
+
 # Chela
 Chela is a minimal URL shortener built in Rust. It is named after the small claw on crustaceans.
 
