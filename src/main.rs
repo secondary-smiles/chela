@@ -1,5 +1,7 @@
 use std::net::SocketAddr;
 
+use url::Url;
+
 use axum::routing::{get, post};
 use axum::Router;
 
@@ -20,6 +22,7 @@ pub struct ServerState {
     pub db_pool: Pool<Postgres>,
     pub host: String,
     pub sqids: Sqids,
+    pub main_page_redirect: Option<Url>,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
@@ -40,9 +43,7 @@ async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
 
     let db_pool = init_db().await?;
-
     let host = std::env::var("CHELA_HOST").unwrap_or("localhost".to_string());
-
     let sqids = Sqids::builder()
         .alphabet(
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -51,10 +52,12 @@ async fn main() -> eyre::Result<()> {
         )
         .blocklist(["create".to_string()].into())
         .build()?;
+    let main_page_redirect = std::env::var("CHELA_MAIN_PAGE_REDIRECT").unwrap_or_default();
     let server_state = ServerState {
         db_pool,
         host,
         sqids,
+        main_page_redirect: Url::parse(&main_page_redirect).ok(),
     };
 
     let address = std::env::var("CHELA_LISTEN_ADDRESS").unwrap_or("0.0.0.0".to_string());
@@ -74,7 +77,11 @@ async fn main() -> eyre::Result<()> {
 async fn init_db() -> eyre::Result<Pool<Postgres>> {
     let db_pool = PgPoolOptions::new()
         .max_connections(15)
-        .connect(std::env::var("DATABASE_URL")?.as_str())
+        .connect(
+            std::env::var("DATABASE_URL")
+                .expect("DATABASE_URL must be set")
+                .as_str(),
+        )
         .await?;
     log!("Successfully connected to database");
 

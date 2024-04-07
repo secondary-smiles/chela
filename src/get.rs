@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use axum::extract::{ConnectInfo, Path};
 use axum::http::HeaderMap;
 use axum::http::StatusCode;
-use axum::response::{Html, IntoResponse};
+use axum::response::{Html, IntoResponse, Redirect};
 use axum::Extension;
 
 use info_utils::prelude::*;
@@ -11,7 +11,11 @@ use info_utils::prelude::*;
 use crate::ServerState;
 use crate::UrlRow;
 
-pub async fn index(Extension(state): Extension<ServerState>) -> Html<String> {
+pub async fn index(Extension(state): Extension<ServerState>) -> impl IntoResponse {
+    if let Some(redirect) = state.main_page_redirect {
+        return Redirect::temporary(redirect.as_str()).into_response();
+    }
+
     Html(format!(
         r#"
     <!DOCTYPE html>
@@ -27,6 +31,7 @@ pub async fn index(Extension(state): Extension<ServerState>) -> Html<String> {
          "#,
         state.host, state.host
     ))
+    .into_response()
 }
 
 /// # Panics
@@ -47,7 +52,7 @@ pub async fn id(
 
     let item: Result<UrlRow, sqlx::Error> =
         sqlx::query_as("SELECT * FROM chela.urls WHERE id = $1")
-            .bind(use_id)
+            .bind(use_id.clone())
             .fetch_one(&state.db_pool)
             .await;
     if let Ok(it) = item {
@@ -74,11 +79,11 @@ pub async fn id(
             )
                 .into_response();
         }
-    } else if let Err(err) = item {
-        warn!("{}", err);
+    } else {
+        warn!("'{}' not found.", use_id);
         return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Html(format!("<pre>Internal error: {err}.</pre>")),
+            StatusCode::NOT_FOUND,
+            Html("<pre>Not found.</pre>".to_string()),
         )
             .into_response();
     }

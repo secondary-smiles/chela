@@ -11,7 +11,7 @@ You can create a redirect by navigating to the `/create` page and filling out th
 docker run -d \
     -p 3000:3000 \
     -e DATABASE_URL=postgres://chela:password@dbhost/postgres?sslmode=disable \
-    -e CHELA_HOST=example.com \
+    -e CHELA_HOST=a.com \
     secondsmiles/chela
 ```
 
@@ -32,7 +32,8 @@ services:
             - 3000:3000
         environment:
             - DATABASE_URL=postgres://chela:password@chela-postgres/postgres?sslmode=disable
-            - CHELA_HOST=example.com
+            - CHELA_HOST=a.com
+            - CHELA_MAIN_PAGE_REDIRECT='https://example.com'
         depends_on:
             - chela-postgres
         restart: unless-stopped
@@ -52,6 +53,9 @@ The hostname that Chela should refer to itself as. Defaults to `localhost`.
 ##### `CHELA_LISTEN_ADDRESS`
 The address that Chela should listen on. Defaults to `0.0.0.0`. 
 
+##### `CHELA_MAIN_PAGE_REDIRECT`
+A page that Chela will redirect to when `/` is requested instead of replying with the default homepage.
+
 ### Manually
 #### Build
 ```bash
@@ -63,7 +67,7 @@ $ cargo build -r
 #### Run
 ```bash
 $ export DATABASE_URL=postgres://chela:password@dbhost/postgres?sslmode=disable
-$ export CHELA_HOST=example.com
+$ export CHELA_HOST=a.com
 $ export CHELA_LISTEN_ADDRESS=127.0.0.1
 $ ./target/release/chela
 ```
