@@ -43,9 +43,7 @@ pub async fn id(
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     let mut show_request = false;
-    let ip = get_ip(headers.clone(), addr, state.clone())
-        .await
-        .unwrap_or_default();
+    let ip = get_ip(&headers, addr, &state).unwrap_or_default();
     log!("Request for '{}' from {}", id.clone(), ip);
     let mut use_id = id;
     if use_id.ends_with('+') {
@@ -96,7 +94,7 @@ pub async fn id(
 
 async fn save_analytics(headers: HeaderMap, item: UrlRow, addr: SocketAddr, state: ServerState) {
     let id = item.id;
-    let ip = get_ip(headers.clone(), addr, state.clone()).await;
+    let ip = get_ip(&headers, addr, &state);
     let referer = match headers.get("referer") {
         Some(it) => {
             if let Ok(i) = it.to_str() {
@@ -136,7 +134,7 @@ VALUES ($1,$2,$3,$4)
     }
 }
 
-async fn get_ip(headers: HeaderMap, addr: SocketAddr, state: ServerState) -> Option<String> {
+fn get_ip(headers: &HeaderMap, addr: SocketAddr, state: &ServerState) -> Option<String> {
     if state.behind_proxy {
         match headers.get("x-real-ip") {
             Some(it) => {

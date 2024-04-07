@@ -98,7 +98,8 @@ async fn init_db() -> eyre::Result<Pool<Postgres>> {
 CREATE TABLE IF NOT EXISTS chela.urls (
     index BIGSERIAL PRIMARY KEY,
     id TEXT NOT NULL UNIQUE,
-    url TEXT NOT NULL
+    url TEXT NOT NULL,
+    custom_id BOOLEAN NOT NULL
 )
         ",
     )

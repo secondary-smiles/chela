@@ -44,8 +44,8 @@ pub async fn create_link(
         if let Some(index) = id.index {
             res = sqlx::query(
                 "
-INSERT INTO chela.urls (index,id,url)
-VALUES ($1,$2,$3)
+INSERT INTO chela.urls (index,id,url,custom_id)
+VALUES ($1,$2,$3,false)
               ",
             )
             .bind(index)
@@ -56,8 +56,8 @@ VALUES ($1,$2,$3)
         } else {
             res = sqlx::query(
                 "
-INSERT INTO chela.urls (id,url)
-VALUES ($1,$2)
+INSERT INTO chela.urls (id,url,custom_id)
+VALUES ($1,$2,true)
               ",
             )
             .bind(id.id.clone())
@@ -102,7 +102,7 @@ VALUES ($1,$2)
 async fn generate_id(form: CreateForm, state: ServerState) -> eyre::Result<NextId> {
     if form.id.is_empty() {
         let existing_row: Result<UrlRow, sqlx::Error> =
-            sqlx::query_as("SELECT * FROM chela.urls WHERE url = $1")
+            sqlx::query_as("SELECT * FROM chela.urls WHERE url = $1 AND custom_id = 'false'")
                 .bind(form.url.as_str())
                 .fetch_one(&state.db_pool)
                 .await;
