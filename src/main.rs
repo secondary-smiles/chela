@@ -23,6 +23,7 @@ pub struct ServerState {
     pub host: String,
     pub sqids: Sqids,
     pub main_page_redirect: Option<Url>,
+    pub behind_proxy: bool,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
@@ -53,11 +54,13 @@ async fn main() -> eyre::Result<()> {
         .blocklist(["create".to_string()].into())
         .build()?;
     let main_page_redirect = std::env::var("CHELA_MAIN_PAGE_REDIRECT").unwrap_or_default();
+    let behind_proxy = std::env::var("CHELA_BEHIND_PROXY").is_ok();
     let server_state = ServerState {
         db_pool,
         host,
         sqids,
         main_page_redirect: Url::parse(&main_page_redirect).ok(),
+        behind_proxy,
     };
 
     let address = std::env::var("CHELA_LISTEN_ADDRESS").unwrap_or("0.0.0.0".to_string());
@@ -108,7 +111,7 @@ CREATE TABLE IF NOT EXISTS chela.urls (
 CREATE TABLE IF NOT EXISTS chela.tracking (
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     id TEXT NOT NULL,
-    ip TEXT NOT NULL,
+    ip TEXT,
     referrer TEXT,
     user_agent TEXT
 )

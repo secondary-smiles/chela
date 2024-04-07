@@ -11,7 +11,7 @@ You can create a redirect by navigating to the `/create` page and filling out th
 ### With Docker
 #### CLI
 ```bash
-docker run -d \
+$ docker run -d \
     -p 3000:3000 \
     -e DATABASE_URL=postgres://chela:password@dbhost/postgres?sslmode=disable \
     -e CHELA_HOST=a.com \
@@ -37,6 +37,7 @@ services:
             - DATABASE_URL=postgres://chela:password@chela-postgres/postgres?sslmode=disable
             - CHELA_HOST=a.com
             - CHELA_MAIN_PAGE_REDIRECT='https://example.com'
+            - CHELA_BEHIND_PROXY=1
         depends_on:
             - chela-postgres
         restart: unless-stopped
@@ -58,6 +59,9 @@ The address that Chela should listen on. Defaults to `0.0.0.0`.
 
 ##### `CHELA_MAIN_PAGE_REDIRECT`
 A page that Chela will redirect to when `/` is requested instead of replying with the default homepage.
+
+##### `CHELA_BEHIND_PROXY`
+If this variable is set, Chela will use the `X-Real-IP` header as the client IP address rather than the connection address.
 
 ### Manually
 #### Build
@@ -86,6 +90,7 @@ server {
     
     location / {
         proxy_pass http://localhost:3000/;
+        proxy_set_header X-Real-IP $remote_addr;
 
         limit_except GET HEAD {
             auth_basic 'Restricted';

@@ -93,7 +93,20 @@ pub async fn id(
 
 async fn save_analytics(headers: HeaderMap, item: UrlRow, addr: SocketAddr, state: ServerState) {
     let id = item.id;
-    let ip = addr.ip().to_string();
+    let ip: Option<String> = if state.behind_proxy {
+        match headers.get("x-real-ip") {
+            Some(it) => {
+                if let Ok(i) = it.to_str() {
+                    Some(i.to_string())
+                } else {
+                    None
+                }
+            }
+            None => None,
+        }
+    } else {
+        Some(addr.ip().to_string())
+    };
     let referer = match headers.get("referer") {
         Some(it) => {
             if let Ok(i) = it.to_str() {
@@ -129,7 +142,7 @@ VALUES ($1,$2,$3,$4)
     .await;
 
     if res.is_ok() {
-        log!("Saved analytics for '{id}' from {ip}");
+        log!("Saved analytics for '{id}' from {}", ip.unwrap_or_default());
     }
 }
 
