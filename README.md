@@ -7,6 +7,8 @@ Chela is a minimal URL shortener built in Rust. It is named after the small claw
 ## Usage
 You can create a redirect by navigating to the `/create` page and filling out the form. By default, every path passed to Chela will be treated as a redirect except `/` and `/create`.
 
+Chela also supports basic analytics for shortened URLs. This page is available at `/tracking`, and `/tracking/<URL ID>`.
+
 ## Install and Run
 ### With Docker
 #### CLI
@@ -86,9 +88,9 @@ $ ./target/release/chela
 ```
 
 ## Hosting
-Chela uses the [axum](https://crates.io/crates/axum) to manage HTTP requests, so it is possible to expose it directly to the outer internet. However, there is no authentication for the `/create` endpoint so anyone will be able to create redirects.
+Chela uses the [axum](https://crates.io/crates/axum) to manage HTTP requests, so it is possible to expose it directly to the outer internet. However, there is no authentication for the `/create` or `/tracking` endpoints so anyone will be able to create redirects and view analytics.
 
-If you would prefer to be the only one able to create redirects, then you can proxy Chela through Nginx with http-basic-auth. Refer to [this](https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication/) documentation for more information.
+If you would prefer to be the only one able to access these pages, then you can proxy Chela through Nginx with http-basic-auth. Refer to [this](https://docs.nginx.com/nginx/admin-guide/security-controls/configuring-http-basic-authentication/) documentation for more information.
 
 ```nginx
 server {
@@ -102,6 +104,14 @@ server {
             auth_basic 'Restricted';
             auth_basic_user_file /path/to/your/.htpasswd;
         }
+    }
+
+    location /tracking {
+        proxy_pass http://localhost:3000/;
+        proxy_set_header X-Real-IP $remote_addr;
+
+        auth_basic 'Restricted';
+        auth_basic_user_file /path/to/your/.htpasswd;
     }
 }
 ```

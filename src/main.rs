@@ -36,6 +36,16 @@ pub struct UrlRow {
     pub index: i64,
     pub id: String,
     pub url: String,
+    pub custom_id: bool,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
+pub struct TrackingRow {
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub id: String,
+    pub ip: Option<String>,
+    pub referrer: Option<String>,
+    pub user_agent: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -73,7 +83,7 @@ async fn main() -> eyre::Result<()> {
         .unwrap_or("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".to_string());
     let sqids = Sqids::builder()
         .alphabet(alphabet.chars().collect())
-        .blocklist(["create".to_string()].into())
+        .blocklist(["create".to_string(), "tracking".to_string()].into())
         .build()?;
     let main_page_redirect = env::var("CHELA_MAIN_PAGE_REDIRECT").unwrap_or_default();
     let behind_proxy = env::var("CHELA_BEHIND_PROXY").is_ok();
@@ -94,8 +104,10 @@ async fn serve(state: ServerState) -> eyre::Result<()> {
     if unix_socket.is_empty() {
         let router = Router::new()
             .route("/", get(get::index))
-            .route("/:id", get(get::id))
             .route("/create", get(get::create_id))
+            .route("/tracking", get(get::tracking))
+            .route("/tracking/:id", get(get::tracking_id))
+            .route("/:id", get(get::id))
             .route("/", post(post::create_link))
             .layer(axum::Extension(state));
         let address = env::var("CHELA_LISTEN_ADDRESS").unwrap_or("0.0.0.0".to_string());
@@ -110,8 +122,10 @@ async fn serve(state: ServerState) -> eyre::Result<()> {
     } else {
         let router = Router::new()
             .route("/", get(get::index))
-            .route("/:id", get(get::id_unix))
             .route("/create", get(get::create_id))
+            .route("/tracking", get(get::tracking))
+            .route("/tracking/:id", get(get::tracking_id))
+            .route("/:id", get(get::id_unix))
             .route("/", post(post::create_link))
             .layer(axum::Extension(state));
         let unix_socket_path = std::path::Path::new(&unix_socket);
@@ -184,7 +198,7 @@ CREATE TABLE IF NOT EXISTS chela.urls (
     sqlx::query(
         "
 CREATE TABLE IF NOT EXISTS chela.tracking (
-    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     id TEXT NOT NULL,
     ip TEXT,
     referrer TEXT,
