@@ -63,6 +63,12 @@ A page that Chela will redirect to when `/` is requested instead of replying wit
 ##### `CHELA_BEHIND_PROXY`
 If this variable is set, Chela will use the `X-Real-IP` header as the client IP address rather than the connection address.
 
+##### `CHELA_UNIX_SOCKET`
+If you would like Chela to listen for HTTP requests over a Unix socket, set this variable to the socket path that it should use. By default, Chela will listen via a Tcp socket.
+
+##### `CHELA_ALPHABET`
+If this variable is set, Chela will use the characters in `CHELA_ALPHABET` to create IDs for URLs. The default alphabet is `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`. See [here](https://sqids.org/faq#unique)
+
 ### Manually
 #### Build
 ```bash

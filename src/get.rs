@@ -9,6 +9,7 @@ use axum::Extension;
 use info_utils::prelude::*;
 
 use crate::ServerState;
+use crate::UdsConnectInfo;
 use crate::UrlRow;
 
 pub async fn index(Extension(state): Extension<ServerState>) -> impl IntoResponse {
@@ -34,6 +35,16 @@ pub async fn index(Extension(state): Extension<ServerState>) -> impl IntoRespons
     .into_response()
 }
 
+pub async fn id_unix(
+    headers: HeaderMap,
+    ConnectInfo(addr): ConnectInfo<UdsConnectInfo>,
+    Extension(state): Extension<ServerState>,
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let ip = format!("{:?}", addr.peer_addr);
+    run_id(headers, ip, state, id).await
+}
+
 /// # Panics
 /// Will panic if `parse()` fails
 pub async fn id(
@@ -42,8 +53,17 @@ pub async fn id(
     Extension(state): Extension<ServerState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let mut show_request = false;
     let ip = get_ip(&headers, addr, &state).unwrap_or_default();
+    run_id(headers, ip, state, id).await
+}
+
+async fn run_id(
+    headers: HeaderMap,
+    ip: String,
+    state: ServerState,
+    id: String,
+) -> impl IntoResponse {
+    let mut show_request = false;
     log!("Request for '{}' from {}", id.clone(), ip);
     let mut use_id = id;
     if use_id.ends_with('+') {
@@ -66,7 +86,7 @@ pub async fn id(
                 .into_response();
             }
             log!("Redirecting {} -> {}", it.id, it.url);
-            save_analytics(headers, it.clone(), addr, state).await;
+            save_analytics(headers, it.clone(), ip, state).await;
             let mut response_headers = HeaderMap::new();
             response_headers.insert("Cache-Control", "private, max-age=90".parse().unwrap());
             response_headers.insert("Location", it.url.parse().unwrap());
@@ -92,9 +112,8 @@ pub async fn id(
     (StatusCode::NOT_FOUND, Html("<pre>Not found.</pre>")).into_response()
 }
 
-async fn save_analytics(headers: HeaderMap, item: UrlRow, addr: SocketAddr, state: ServerState) {
+async fn save_analytics(headers: HeaderMap, item: UrlRow, ip: String, state: ServerState) {
     let id = item.id;
-    let ip = get_ip(&headers, addr, &state);
     let referer = match headers.get("referer") {
         Some(it) => {
             if let Ok(i) = it.to_str() {
@@ -130,7 +149,7 @@ VALUES ($1,$2,$3,$4)
     .await;
 
     if res.is_ok() {
-        log!("Saved analytics for '{id}' from {}", ip.unwrap_or_default());
+        log!("Saved analytics for '{id}' from {}", ip);
     }
 }
 
