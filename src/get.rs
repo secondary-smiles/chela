@@ -41,7 +41,21 @@ pub async fn id_unix(
     Extension(state): Extension<ServerState>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let ip = format!("{:?}", addr.peer_addr);
+    let ip = if state.behind_proxy {
+        match headers.get("x-real-ip") {
+            Some(it) => {
+                if let Ok(i) = it.to_str() {
+                    Some(i.to_string())
+                } else {
+                    None
+                }
+            }
+            None => None,
+        }
+    } else {
+        Some(format!("{:?}", addr.peer_addr))
+    }
+    .unwrap_or_default();
     run_id(headers, ip, state, id).await
 }
 
