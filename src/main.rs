@@ -198,11 +198,3 @@ CREATE TABLE IF NOT EXISTS chela.tracking (
 
     Ok(db_pool)
 }
-
-fn init_routes(state: ServerState) -> Router {
-    Router::new()
-        .route("/", get(get::index))
-        .route("/create", get(get::create_id))
-        .route("/", post(post::create_link))
-        .layer(axum::Extension(state))
-}
