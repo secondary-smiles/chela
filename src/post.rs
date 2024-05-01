@@ -32,7 +32,8 @@ pub async fn create_link(
         if id.exists {
             log!("Serving cached id {} -> {}", id.id, form.url.as_str());
             return Html(format!(
-                r#"<pre>http://{}/{} -> <a href="{}"">{}</a></pre>"#,
+                r#"<pre>http{}://{}/{} -> <a href="{}"">{}</a></pre>"#,
+                if state.uses_https { "s" } else { "" },
                 state.host,
                 id.id,
                 form.url.as_str(),
@@ -72,7 +73,8 @@ VALUES ($1,$2,true)
                 return (
                     StatusCode::OK,
                     Html(format!(
-                        r#"<pre>http://{}/{} -> <a href="{}"">{}</a></pre>"#,
+                        r#"<pre>http{}://{}/{} -> <a href="{}"">{}</a></pre>"#,
+                        if state.uses_https { "s" } else { "" },
                         state.host,
                         id.id,
                         form.url.as_str(),

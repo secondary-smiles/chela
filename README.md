@@ -71,6 +71,9 @@ If you would like Chela to listen for HTTP requests over a Unix socket, set this
 ##### `CHELA_ALPHABET`
 If this variable is set, Chela will use the characters in `CHELA_ALPHABET` to create IDs for URLs. The default alphabet is `abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ`. See [here](https://sqids.org/faq#unique) for more information on Sqids alphabets.
 
+##### `CHELA_USES_HTTPS`
+If this variable is set, Chela will refer to itself as `https://$CHELA_HOST` instead of the default `http://$CHELA_HOST`.
+
 ### Manually
 #### Build
 ```bash
@@ -94,7 +97,7 @@ If you would prefer to be the only one able to access these pages, then you can 
 
 ```nginx
 server {
-    server_name example.com;
+    server_name a.com;
     
     location / {
         proxy_pass http://localhost:3000;
@@ -108,7 +111,6 @@ server {
 
     location /tracking {
         proxy_pass http://localhost:3000$request_uri;
-        proxy_set_header X-Real-IP $remote_addr;
 
         auth_basic 'Restricted';
         auth_basic_user_file /path/to/your/.htpasswd;

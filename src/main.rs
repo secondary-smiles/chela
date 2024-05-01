@@ -29,6 +29,7 @@ pub struct ServerState {
     pub sqids: Sqids,
     pub main_page_redirect: Option<Url>,
     pub behind_proxy: bool,
+    pub uses_https: bool,
 }
 
 #[derive(Debug, Clone, sqlx::FromRow, PartialEq, Eq)]
@@ -87,12 +88,14 @@ async fn main() -> eyre::Result<()> {
         .build()?;
     let main_page_redirect = env::var("CHELA_MAIN_PAGE_REDIRECT").unwrap_or_default();
     let behind_proxy = env::var("CHELA_BEHIND_PROXY").is_ok();
+    let uses_https = env::var("CHELA_USES_HTTPS").is_ok();
     let server_state = ServerState {
         db_pool,
         host,
         sqids,
         main_page_redirect: Url::parse(&main_page_redirect).ok(),
         behind_proxy,
+        uses_https
     };
 
     serve(server_state).await?;
